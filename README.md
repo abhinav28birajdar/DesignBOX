@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DesignBox
 
-## Getting Started
+DesignBox is a browser-first photo and graphic editor built with React 18 + TypeScript + Fabric.js.
 
-First, run the development server:
+Tagline: Design Without Limits
+
+## Stack
+
+- Vite + React 18 + TypeScript (strict)
+- Fabric.js v5 canvas engine
+- Zustand global state
+- Tailwind CSS UI styling
+- Framer Motion transitions
+- react-colorful color controls
+- localforage IndexedDB persistence
+- file-saver + jsPDF + SVG export
+- react-dnd layer drag-reorder
+- react-tooltip toolbar tooltips
+- react-hotkeys-hook keyboard shortcuts
+- perfect-freehand stroke smoothing
+- stackblur-canvas image blur processing
+
+## Run
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Local URL:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- http://localhost:5173
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Validation:
 
-## Learn More
+```bash
+npm run lint
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Current Feature Coverage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- DesignBox branding: logo, favicon, title, top bar identity
+- Dark-first design system with light theme toggle
+- Canvas workspace with zoom (10% to 3200%), grid overlay, and wheel zoom
+- Tool system wired to Fabric for move/select/lasso/magic-wand/crop/brush/eraser/fill/eyedropper/text/shape/clone/pen
+- Smooth brush path generation using perfect-freehand
+- Layers panel with rename, visibility, lock, opacity, blend mode, duplicate/delete
+- Drag-and-drop layer reordering with canvas z-index sync
+- Adjustment panel with pixel-level brightness/contrast/saturation and blur processing
+- History snapshots with undo/redo and timeline jump panel
+- File open, project save/load (.designbox), auto-save to IndexedDB, and export modal
+- Keyboard shortcuts powered by react-hotkeys-hook
+- Toolbar hover tooltips powered by react-tooltip
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Persistence
 
-## Deploy on Vercel
+- Auto-save key: designbox_autosave (IndexedDB via localforage)
+- Project extension: .designbox
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The app is fully frontend-only and runs without backend services.
+- Build currently emits a large bundle warning due Fabric.js size; app still builds successfully.
