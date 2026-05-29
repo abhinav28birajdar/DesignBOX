@@ -23,21 +23,15 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { useHistory } from "@/hooks/useHistory";
 import { useLayersStore } from "@/store/layersStore";
 import type { fabric } from "fabric";
+import type { ProjectTab } from "@/types";
 import { useState } from "react";
 import ContextMenu from "@/components/overlays/ContextMenu";
-
-const createTab = (name = "Untitled", width = 1920, height = 1080, background = "#ffffff") => ({
-  id: crypto.randomUUID(),
-  name,
-  width,
-  height,
-  dpi: 72,
-  background,
-  modified: false,
-});
+import HomePage from "@/pages/HomePage";
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [isOnHomePage, setIsOnHomePage] = useState(true);
+
   const theme = useUiStore((state) => state.theme);
   const setTheme = useUiStore((state) => state.setTheme);
   const openExportModal = useUiStore((state) => state.openExportModal);
@@ -68,12 +62,6 @@ export default function App() {
   useAutoSave();
 
   useEffect(() => {
-    if (tabs.length === 0) {
-      openTab(createTab());
-    }
-  }, [openTab, tabs.length]);
-
-  useEffect(() => {
     const timeout = window.setTimeout(() => setShowSplash(false), 850);
     return () => window.clearTimeout(timeout);
   }, []);
@@ -82,6 +70,20 @@ export default function App() {
     document.documentElement.classList.remove("dark", "light");
     document.documentElement.classList.add(theme);
   }, [theme]);
+
+  const handleNewProject = (tab: ProjectTab) => {
+    openTab(tab);
+    setIsOnHomePage(false);
+  };
+
+  const handleOpenProject = (id: string) => {
+    setActiveTab(id);
+    setIsOnHomePage(false);
+  };
+
+  const handleBackToHome = () => {
+    setIsOnHomePage(true);
+  };
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
 
@@ -118,14 +120,27 @@ export default function App() {
   const openAny = async (file: File) => {
     if (file.name.endsWith(".designbox") || file.name.endsWith(".json")) {
       await openProjectJson(file);
+      setIsOnHomePage(false);
       return;
     }
     await openImage(file);
+    setIsOnHomePage(false);
   };
+
+  if (showSplash) {
+    return <SplashScreen visible={true} />;
+  }
+
+  if (isOnHomePage) {
+    return (
+      <div className={`h-screen w-screen ${theme}`}>
+        <HomePage onNewProject={handleNewProject} onOpenProject={handleOpenProject} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <SplashScreen visible={showSplash} />
       <TopMenuBar
         onNew={() => setModal("newProject", true)}
         onOpen={openAny}
@@ -143,6 +158,13 @@ export default function App() {
       />
 
       <div className="panel flex h-9 items-center gap-1 overflow-auto px-2">
+        <button
+          onClick={handleBackToHome}
+          className="rounded bg-slate-700 px-2 py-1 text-xs hover:bg-slate-600 mr-2"
+          title="Back to Home"
+        >
+          ⌂ Home
+        </button>
         {tabs.map((tab) => (
           <button
             key={tab.id}

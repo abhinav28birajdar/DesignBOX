@@ -4,9 +4,9 @@ import type { BlendMode, LayerItem, LayerType } from "@/types";
 
 const mapType = (obj: fabric.Object): LayerType => {
   if (obj.type === "textbox" || obj.type === "text") return "text";
-  if (obj.type === "image") return "image";
+  if (obj.type === "image") return "raster";
   if (obj.type === "group") return "group";
-  return "shape";
+  return "vector-shape";  // Default to vector-shape for paths and shapes
 };
 
 const mapBlend = (mode?: string): BlendMode => {
