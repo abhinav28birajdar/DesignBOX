@@ -5,6 +5,7 @@ import { disableDrawing } from "@/tools/toolCommon";
 export const activateSelectTool = ({ canvas }: ToolContext): void => {
   disableDrawing(canvas);
   canvas.selection = false;
+  canvas.defaultCursor = "crosshair";
   let startX = 0;
   let startY = 0;
   let marquee: fabric.Rect | null = null;
@@ -46,7 +47,82 @@ export const activateSelectTool = ({ canvas }: ToolContext): void => {
     const bounds = marquee.getBoundingRect();
     const selected = canvas
       .getObjects()
-      .filter((obj) => obj !== marquee)
+      .filter((obj) => obj !== marquee && !obj.data?.tempToolObject)
+      .filter((obj) => {
+        const rect = obj.getBoundingRect();
+        return (
+          rect.left >= bounds.left &&
+          rect.top >= bounds.top &&
+          rect.left + rect.width <= bounds.left + bounds.width &&
+          rect.top + rect.height <= bounds.top + bounds.height
+        );
+      });
+
+    const additive = event.e.shiftKey;
+    if (!additive) {
+      canvas.discardActiveObject();
+    }
+
+    if (selected.length === 1) {
+      canvas.setActiveObject(selected[0]);
+    } else if (selected.length > 1) {
+      canvas.setActiveObject(new fabric.ActiveSelection(selected, { canvas }));
+    }
+
+    canvas.remove(marquee);
+    marquee = null;
+    canvas.renderAll();
+  });
+};
+
+export const activateEllipseSelectTool = ({ canvas }: ToolContext): void => {
+  disableDrawing(canvas);
+  canvas.selection = false;
+  canvas.defaultCursor = "crosshair";
+  let startX = 0;
+  let startY = 0;
+  let marquee: fabric.Ellipse | null = null;
+
+  canvas.off("mouse:down");
+  canvas.on("mouse:down", (event) => {
+    const pointer = canvas.getPointer(event.e);
+    startX = pointer.x;
+    startY = pointer.y;
+    marquee = new fabric.Ellipse({
+      left: startX,
+      top: startY,
+      rx: 1,
+      ry: 1,
+      fill: "rgba(99,102,241,0.15)",
+      stroke: "#6366f1",
+      strokeDashArray: [4, 4],
+      selectable: false,
+      evented: false,
+      data: { tempToolObject: true, selectionOverlay: true },
+    });
+    canvas.add(marquee);
+  });
+
+  canvas.on("mouse:move", (event) => {
+    if (!marquee) return;
+    const pointer = canvas.getPointer(event.e);
+    const w = Math.abs(pointer.x - startX);
+    const h = Math.abs(pointer.y - startY);
+    marquee.set({
+      left: Math.min(startX, pointer.x),
+      top: Math.min(startY, pointer.y),
+      rx: w / 2,
+      ry: h / 2,
+    });
+    canvas.renderAll();
+  });
+
+  canvas.on("mouse:up", (event) => {
+    if (!marquee) return;
+    const bounds = marquee.getBoundingRect();
+    const selected = canvas
+      .getObjects()
+      .filter((obj) => obj !== marquee && !obj.data?.tempToolObject)
       .filter((obj) => {
         const rect = obj.getBoundingRect();
         return (

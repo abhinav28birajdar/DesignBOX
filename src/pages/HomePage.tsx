@@ -70,7 +70,7 @@ export default function HomePage({ onNewProject, onOpenProject }: HomePageProps)
           <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
             DesignBox
           </h1>
-          <p className="text-slate-400 mt-2">Professional Design Tool</p>
+          <p className="text-slate-400 mt-2">Design Without Limits</p>
         </div>
       </motion.div>
 

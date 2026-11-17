@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { saveAs } from "file-saver";
+import { jsPDF } from "jspdf";
 import { useCanvasStore } from "@/store/canvasStore";
 
 interface ExportModalProps {
@@ -20,6 +22,34 @@ export default function ExportModal({ open, onClose }: ExportModalProps) {
     if (!canvas) return;
 
     try {
+      if (format === "svg") {
+        const svgString = canvas.toSVG();
+        const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+        saveAs(blob, `${filename}.svg`);
+        onClose();
+        return;
+      }
+
+      if (format === "pdf") {
+        const dataURL = canvas.toDataURL({
+          format: "png",
+          multiplier,
+          enableRetinaScaling: false,
+        });
+        const w = canvas.getWidth() * multiplier;
+        const h = canvas.getHeight() * multiplier;
+        const orientation = w > h ? "landscape" : "portrait";
+        const pdf = new jsPDF({
+          orientation,
+          unit: "px",
+          format: [w, h],
+        });
+        pdf.addImage(dataURL, "PNG", 0, 0, w, h);
+        pdf.save(`${filename}.pdf`);
+        onClose();
+        return;
+      }
+
       const dataURL = canvas.toDataURL({
         format: format === "jpg" ? "jpeg" : format,
         quality: quality / 100,
@@ -27,13 +57,7 @@ export default function ExportModal({ open, onClose }: ExportModalProps) {
         enableRetinaScaling: false,
       });
 
-      const link = document.createElement("a");
-      link.href = dataURL;
-      link.download = `${filename}.${format}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
+      saveAs(dataURL, `${filename}.${format}`);
       onClose();
     } catch (error) {
       console.error("Export failed:", error);

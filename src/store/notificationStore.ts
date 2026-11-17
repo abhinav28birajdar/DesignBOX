@@ -1,18 +1,26 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
-export type ToastType = "success" | "error" | "warning" | "info";
+export type ToastType = "success" | "error" | "warning" | "info" | "loading";
 
 export interface Toast {
   id: string;
   type: ToastType;
   message: string;
-  duration?: number;  // ms, 0 = manual close
+  duration?: number; // ms, 0 = manual close
+  actionLabel?: string;
+  onAction?: () => void;
+  createdAt: number;
 }
 
 interface NotificationState {
   toasts: Toast[];
-  addToast: (message: string, type?: ToastType, duration?: number) => void;
+  addToast: (
+    message: string,
+    type?: ToastType,
+    duration?: number,
+    actionLabel?: string,
+    onAction?: () => void
+  ) => string;
   removeToast: (id: string) => void;
   clearAll: () => void;
 }
@@ -20,18 +28,33 @@ interface NotificationState {
 export const useNotificationStore = create<NotificationState>((set) => ({
   toasts: [],
 
-  addToast: (message, type = "info", duration = 3000) => {
+  addToast: (message, type = "info", duration = 3000, actionLabel, onAction) => {
     const id = crypto.randomUUID();
+    const defaultDurations: Record<ToastType, number> = {
+      success: 2000,
+      info: 3000,
+      warning: 4000,
+      error: 5000,
+      loading: 0,
+    };
+    const effectiveDuration = duration !== undefined ? duration : defaultDurations[type];
+
     set((state) => ({
-      toasts: [...state.toasts, { id, type, message, duration }],
+      toasts: [
+        ...state.toasts.slice(-4),
+        { id, type, message, duration: effectiveDuration, actionLabel, onAction, createdAt: Date.now() },
+      ],
     }));
-    if (duration > 0) {
+
+    if (effectiveDuration > 0) {
       setTimeout(() => {
         set((state) => ({
           toasts: state.toasts.filter((t) => t.id !== id),
         }));
-      }, duration);
+      }, effectiveDuration);
     }
+
+    return id;
   },
 
   removeToast: (id) =>

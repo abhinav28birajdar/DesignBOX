@@ -54,26 +54,78 @@ export function AnimationTimelinePanel() {
     };
   }, [isPlaying, duration, currentTime, setCurrentTime]);
 
+  // Apply animation keyframe updates to canvas objects
+  useEffect(() => {
+    if (!canvas || tracks.length === 0) return;
+
+    let modified = false;
+    const objects = canvas.getObjects();
+
+    tracks.forEach((track) => {
+      // Find object by layerId or track.objectId
+      const obj = objects.find(
+        (o) =>
+          o.data?.layerId === track.objectId ||
+          (o as any).name === track.objectId ||
+          (o as any).id === track.objectId
+      );
+
+      if (!obj) return;
+
+      const getVal = (prop: string) =>
+        useAnimationStore.getState().getPropertyAtTime(track.id, currentTime, prop);
+
+      const x = getVal("x");
+      const y = getVal("y");
+      const scaleX = getVal("scaleX");
+      const scaleY = getVal("scaleY");
+      const angle = getVal("angle");
+      const opacity = getVal("opacity");
+
+      if (x !== undefined) { obj.set("left", x); modified = true; }
+      if (y !== undefined) { obj.set("top", y); modified = true; }
+      if (scaleX !== undefined) { obj.set("scaleX", scaleX); modified = true; }
+      if (scaleY !== undefined) { obj.set("scaleY", scaleY); modified = true; }
+      if (angle !== undefined) { obj.set("angle", angle); modified = true; }
+      if (opacity !== undefined) { obj.set("opacity", opacity); modified = true; }
+    });
+
+    if (modified) {
+      canvas.renderAll();
+    }
+  }, [canvas, currentTime, tracks]);
+
   const handleAddTrack = () => {
     if (canvas) {
-      const active = canvas.getActiveObject() as any;
+      const active = canvas.getActiveObject();
       if (active) {
-        addTrack(active.name || active.id || "unnamed");
+        const id = active.data?.layerId || (active as any).name || (active as any).id || crypto.randomUUID();
+        addTrack(id);
       }
     }
   };
 
   const handleAddKeyframe = (trackId: string) => {
     if (canvas) {
-      const active = canvas.getActiveObject();
-      if (active) {
+      const track = tracks.find((t) => t.id === trackId);
+      if (!track) return;
+
+      const objects = canvas.getObjects();
+      const obj = objects.find(
+        (o) =>
+          o.data?.layerId === track.objectId ||
+          (o as any).name === track.objectId ||
+          (o as any).id === track.objectId
+      ) || canvas.getActiveObject();
+
+      if (obj) {
         addKeyframe(trackId, currentTime, {
-          x: active.left,
-          y: active.top,
-          scaleX: active.scaleX,
-          scaleY: active.scaleY,
-          angle: active.angle,
-          opacity: active.opacity,
+          x: obj.left,
+          y: obj.top,
+          scaleX: obj.scaleX,
+          scaleY: obj.scaleY,
+          angle: obj.angle,
+          opacity: obj.opacity,
         });
       }
     }

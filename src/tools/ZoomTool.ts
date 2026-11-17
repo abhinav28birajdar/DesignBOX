@@ -1,5 +1,6 @@
 import { fabric } from "fabric";
-import { BaseTool } from "./toolCommon";
+import { BaseTool, disableDrawing, type ToolContext } from "./toolCommon";
+import { useCanvasStore } from "@/store/canvasStore";
 
 export class ZoomTool extends BaseTool {
   name = "zoom";
@@ -10,25 +11,37 @@ export class ZoomTool extends BaseTool {
     const pointer = canvas.getPointer(e.e);
 
     if ((e.e as MouseEvent).altKey) {
-      // Zoom out
-      canvas.zoomToPoint(new (fabric.Point as any)(pointer.x, pointer.y), currentZoom * 0.8);
+      canvas.zoomToPoint(new (fabric.Point as any)(pointer.x, pointer.y), Math.max(0.1, currentZoom * 0.8));
     } else {
-      // Zoom in
-      canvas.zoomToPoint(new (fabric.Point as any)(pointer.x, pointer.y), currentZoom * 1.2);
+      canvas.zoomToPoint(new (fabric.Point as any)(pointer.x, pointer.y), Math.min(32, currentZoom * 1.25));
     }
 
+    useCanvasStore.getState().setZoom(Math.round(canvas.getZoom() * 100));
     canvas.renderAll();
   }
 
-  onMouseUp() {
-    // Nothing needed
-  }
-
-  onMouseMove() {
-    // Nothing needed
-  }
-
-  resetCursor() {
-    // Nothing needed
-  }
+  onMouseUp() {}
+  onMouseMove() {}
+  resetCursor() {}
 }
+
+export const activateZoomTool = ({ canvas }: ToolContext): void => {
+  disableDrawing(canvas);
+  canvas.selection = false;
+  canvas.defaultCursor = "zoom-in";
+
+  canvas.off("mouse:down");
+  canvas.on("mouse:down", (e) => {
+    const currentZoom = canvas.getZoom();
+    const pointer = canvas.getPointer(e.e);
+    const isAlt = (e.e as MouseEvent).altKey;
+
+    const nextZoom = isAlt
+      ? Math.max(0.1, currentZoom * 0.8)
+      : Math.min(32, currentZoom * 1.25);
+
+    canvas.zoomToPoint(new fabric.Point(pointer.x, pointer.y), nextZoom);
+    useCanvasStore.getState().setZoom(Math.round(canvas.getZoom() * 100));
+    canvas.renderAll();
+  });
+};

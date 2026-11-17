@@ -5,6 +5,8 @@ import Input from '@/components/ui/Input';
 import { Heart } from '@/components/ui/Icons';
 import { useCanvasStore } from '@/store/canvasStore';
 import { useLayersStore } from '@/store/layersStore';
+import { useColorStore } from '@/store/colorStore';
+import { useProjectStore } from '@/store/projectStore';
 import { BUILTIN_SHAPES, PALETTES, BUILTIN_FONTS, TEMPLATE_PRESETS, STICKERS_PACK } from '@/utils/assetsLibrary';
 import type { ShapeAsset } from '@/utils/assetsLibrary';
 
@@ -65,8 +67,63 @@ export const AssetsPanel = () => {
   const addColorPaletteToSwatches = (paletteId: string) => {
     const palette = PALETTES.find((p) => p.id === paletteId);
     if (palette) {
-      console.log('Adding palette to swatches:', palette.name, palette.colors);
-      // TODO: Wire to color store
+      palette.colors.forEach((color) => {
+        useColorStore.getState().addSwatch(color);
+      });
+      useColorStore.getState().setForeground(palette.colors[0]);
+    }
+  };
+
+  const applyFontToCanvas = (font: string) => {
+    if (!canvas) return;
+    const active = canvas.getActiveObject();
+    if (active && (active.type === 'textbox' || active.type === 'text' || active.type === 'i-text')) {
+      (active as fabric.Textbox).set('fontFamily', font);
+      canvas.renderAll();
+    } else {
+      const textObj = new fabric.IText(font, {
+        left: canvas.width! / 2 - 50,
+        top: canvas.height! / 2 - 20,
+        fontFamily: font,
+        fontSize: 32,
+        fill: useColorStore.getState().foreground || '#ffffff',
+      });
+      canvas.add(textObj);
+      canvas.setActiveObject(textObj);
+      canvas.renderAll();
+      syncFromCanvas(canvas);
+    }
+  };
+
+  const addStickerToCanvas = (sticker: { name: string; url: string }) => {
+    if (!canvas) return;
+    const stickerObj = new fabric.IText(sticker.url, {
+      left: canvas.width! / 2 - 25,
+      top: canvas.height! / 2 - 25,
+      fontSize: 48,
+    });
+    canvas.add(stickerObj);
+    canvas.setActiveObject(stickerObj);
+    canvas.renderAll();
+    syncFromCanvas(canvas);
+  };
+
+  const applyTemplate = (template: { name: string; size: string }) => {
+    if (!canvas) return;
+    const activeTab = useProjectStore.getState().tabs.find((t) => t.id === useProjectStore.getState().activeTabId);
+    if (!activeTab) return;
+
+    const [wStr, hStr] = template.size.split('x').map((s) => s.trim().replace('px', ''));
+    const w = parseInt(wStr, 10);
+    const h = parseInt(hStr, 10);
+
+    if (!isNaN(w) && !isNaN(h)) {
+      canvas.setWidth(w);
+      canvas.setHeight(h);
+      useProjectStore.setState((state) => ({
+        tabs: state.tabs.map((t) => (t.id === activeTab.id ? { ...t, width: w, height: h } : t)),
+      }));
+      canvas.renderAll();
     }
   };
 
@@ -171,6 +228,7 @@ export const AssetsPanel = () => {
                 key={font}
                 className="rounded bg-slate-800 p-2 cursor-pointer hover:bg-slate-700 transition-colors text-sm"
                 style={{ fontFamily: font }}
+                onClick={() => applyFontToCanvas(font)}
               >
                 {font}
               </div>
@@ -185,6 +243,7 @@ export const AssetsPanel = () => {
               <div
                 key={template.id}
                 className="rounded bg-slate-800 p-3 cursor-pointer hover:bg-slate-700 transition-colors"
+                onClick={() => applyTemplate(template)}
               >
                 <p className="text-xs font-semibold">{template.name}</p>
                 <p className="text-xs text-slate-400 mt-1">{template.size}</p>
@@ -200,7 +259,7 @@ export const AssetsPanel = () => {
               <div
                 key={idx}
                 className="flex items-center justify-center aspect-square rounded bg-slate-800 text-3xl cursor-pointer hover:bg-slate-700 transition-colors"
-                onClick={() => console.log('Adding sticker:', sticker.name)}
+                onClick={() => addStickerToCanvas(sticker)}
                 title={sticker.name}
               >
                 {sticker.url}

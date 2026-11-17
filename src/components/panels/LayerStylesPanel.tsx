@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { fabric } from 'fabric';
 import Checkbox from '@/components/ui/Checkbox';
 import Slider from '@/components/ui/Slider';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Plus, ChevronDown, Trash2 } from '@/components/ui/Icons';
+import { useCanvasStore } from '@/store/canvasStore';
+import { useLayersStore } from '@/store/layersStore';
 
 type EffectType = 'drop-shadow' | 'inner-shadow' | 'outer-glow' | 'inner-glow' | 'bevel' | 'satin' | 'color-overlay' | 'gradient-overlay' | 'pattern-overlay' | 'stroke';
 
@@ -17,7 +20,12 @@ interface LayerStylesState {
   effects: LayerEffect[];
 }
 
+let copiedStyles: LayerEffect[] | null = null;
+
 export const LayerStylesPanel = () => {
+  const canvas = useCanvasStore((state) => state.canvas);
+  const syncFromCanvas = useLayersStore((state) => state.syncFromCanvas);
+
   const [styles, setStyles] = useState<LayerStylesState>({
     effects: [
       {
@@ -80,21 +88,87 @@ export const LayerStylesPanel = () => {
     ],
   });
 
+  const applyEffects = (newEffects: LayerEffect[]) => {
+    if (!canvas) return;
+    const active = canvas.getActiveObject() as any;
+    if (!active) return;
+
+    newEffects.forEach((eff) => {
+      if (!eff.enabled) {
+        if (eff.type === 'drop-shadow' || eff.type === 'outer-glow') {
+          if (active.shadow) active.set('shadow', null);
+        }
+        if (eff.type === 'stroke') {
+          active.set({ strokeWidth: 0 });
+        }
+        return;
+      }
+
+      if (eff.type === 'drop-shadow') {
+        const angleRad = (eff.params.angle || 0) * (Math.PI / 180);
+        const dist = eff.params.distance || 0;
+        active.set(
+          'shadow',
+          new fabric.Shadow({
+            color: eff.params.color || '#000000',
+            blur: eff.params.size || 0,
+            offsetX: Math.cos(angleRad) * dist,
+            offsetY: Math.sin(angleRad) * dist,
+          })
+        );
+      } else if (eff.type === 'outer-glow') {
+        active.set(
+          'shadow',
+          new fabric.Shadow({
+            color: eff.params.color || '#ffff00',
+            blur: eff.params.size || 20,
+            offsetX: 0,
+            offsetY: 0,
+          })
+        );
+      } else if (eff.type === 'stroke') {
+        active.set({
+          stroke: eff.params.color || '#000000',
+          strokeWidth: eff.params.size || 1,
+        });
+      } else if (eff.type === 'color-overlay') {
+        active.set('fill', eff.params.color || '#ff0000');
+      }
+    });
+
+    canvas.renderAll();
+    syncFromCanvas(canvas);
+  };
+
   const toggleEffect = (index: number) => {
     const newEffects = [...styles.effects];
     newEffects[index].enabled = !newEffects[index].enabled;
     setStyles({ ...styles, effects: newEffects });
+    applyEffects(newEffects);
   };
 
   const updateEffectParam = (effectIndex: number, paramKey: string, value: any) => {
     const newEffects = [...styles.effects];
     newEffects[effectIndex].params[paramKey] = value;
     setStyles({ ...styles, effects: newEffects });
+    applyEffects(newEffects);
   };
 
   const removeEffect = (index: number) => {
     const newEffects = styles.effects.filter((_, i) => i !== index);
     setStyles({ ...styles, effects: newEffects });
+    applyEffects(newEffects);
+  };
+
+  const handleCopyStyle = () => {
+    copiedStyles = JSON.parse(JSON.stringify(styles.effects));
+  };
+
+  const handlePasteStyle = () => {
+    if (!copiedStyles) return;
+    const pasted = JSON.parse(JSON.stringify(copiedStyles));
+    setStyles({ effects: pasted });
+    applyEffects(pasted);
   };
 
   const getEffectTitle = (type: EffectType): string => {
@@ -271,10 +345,10 @@ export const LayerStylesPanel = () => {
 
       {/* Copy/Paste Buttons */}
       <div className="flex gap-2 pt-2 border-t border-gray-700">
-        <Button size="sm" variant="outline" className="flex-1 h-7 text-xs">
+        <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={handleCopyStyle}>
           Copy Style
         </Button>
-        <Button size="sm" variant="outline" className="flex-1 h-7 text-xs">
+        <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={handlePasteStyle}>
           Paste Style
         </Button>
       </div>

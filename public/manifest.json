@@ -1,0 +1,30 @@
+{
+  "name": "DesignBox",
+  "short_name": "DesignBox",
+  "description": "Design Without Limits",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0F1E",
+  "theme_color": "#6366F1",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/designbox-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/open",
+      "accept": {
+        "application/designbox": [".designbox"],
+        "image/*": [".jpg", ".jpeg", ".png", ".webp", ".svg"]
+      }
+    }
+  ]
+}

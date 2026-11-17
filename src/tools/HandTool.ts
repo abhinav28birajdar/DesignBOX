@@ -1,5 +1,5 @@
 import { fabric } from "fabric";
-import { BaseTool } from "./toolCommon";
+import { BaseTool, disableDrawing, type ToolContext } from "./toolCommon";
 
 export class HandTool extends BaseTool {
   name = "hand";
@@ -38,3 +38,48 @@ export class HandTool extends BaseTool {
     this.isDrawing = false;
   }
 }
+
+export const activateHandTool = ({ canvas }: ToolContext): void => {
+  disableDrawing(canvas);
+  canvas.selection = false;
+  canvas.defaultCursor = "grab";
+  canvas.discardActiveObject();
+  canvas.renderAll();
+
+  let isPanning = false;
+  let lastX = 0;
+  let lastY = 0;
+
+  canvas.off("mouse:down");
+  canvas.on("mouse:down", (e) => {
+    isPanning = true;
+    canvas.defaultCursor = "grabbing";
+    const event = e.e as MouseEvent;
+    lastX = event.clientX;
+    lastY = event.clientY;
+  });
+
+  canvas.off("mouse:move");
+  canvas.on("mouse:move", (e) => {
+    if (!isPanning) return;
+    const event = e.e as MouseEvent;
+    const deltaX = event.clientX - lastX;
+    const deltaY = event.clientY - lastY;
+
+    const vpt = canvas.viewportTransform;
+    if (vpt) {
+      vpt[4] += deltaX;
+      vpt[5] += deltaY;
+      canvas.renderAll();
+    }
+
+    lastX = event.clientX;
+    lastY = event.clientY;
+  });
+
+  canvas.off("mouse:up");
+  canvas.on("mouse:up", () => {
+    isPanning = false;
+    canvas.defaultCursor = "grab";
+  });
+};

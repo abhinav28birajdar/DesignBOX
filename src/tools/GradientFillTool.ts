@@ -1,5 +1,5 @@
 import { fabric } from "fabric";
-import { BaseTool } from "./toolCommon";
+import { BaseTool, disableDrawing, type ToolContext } from "./toolCommon";
 
 export interface GradientFillToolOptions {
   gradientType: "linear" | "radial";
@@ -22,10 +22,7 @@ export class GradientFillTool extends BaseTool {
     this.startY = pointer.y;
   }
 
-  onMouseMove(_e: fabric.IEvent, _canvas: fabric.Canvas, _options: GradientFillToolOptions) {
-    if (!this.isDrawing) return;
-    // Preview could go here
-  }
+  onMouseMove() {}
 
   onMouseUp(e: fabric.IEvent, canvas: fabric.Canvas, options: GradientFillToolOptions) {
     if (!this.isDrawing) return;
@@ -35,42 +32,111 @@ export class GradientFillTool extends BaseTool {
     const endX = pointer.x;
     const endY = pointer.y;
 
-    const activeObj = canvas.getActiveObject();
-    if (!activeObj) return;
-
-    // Create gradient
-    const gradientCoords = options.gradientType === "radial"
-      ? {
-          x1: this.startX,
-          y1: this.startY,
-          x2: endX,
-          y2: endY,
-          r1: 0,
-          r2: Math.sqrt(
-            (endX - this.startX) ** 2 + (endY - this.startY) ** 2
-          ),
-        }
-      : {
-          x1: this.startX,
-          y1: this.startY,
-          x2: endX,
-          y2: endY,
-        };
+    const gradientCoords =
+      options.gradientType === "radial"
+        ? {
+            x1: this.startX,
+            y1: this.startY,
+            x2: endX,
+            y2: endY,
+            r1: 0,
+            r2: Math.max(10, Math.sqrt((endX - this.startX) ** 2 + (endY - this.startY) ** 2)),
+          }
+        : {
+            x1: this.startX,
+            y1: this.startY,
+            x2: endX,
+            y2: endY,
+          };
 
     const gradient = new fabric.Gradient({
-      type: options.gradientType as 'linear' | 'radial',
+      type: options.gradientType || "linear",
       coords: gradientCoords as any,
       colorStops: [
-        { offset: 0, color: options.color1 },
-        { offset: 1, color: options.color2 },
+        { offset: 0, color: options.color1 || "#6366f1" },
+        { offset: 1, color: options.color2 || "#22c55e" },
       ],
     });
 
-    (activeObj as any).fill = gradient;
+    const activeObj = canvas.getActiveObject();
+    if (activeObj) {
+      (activeObj as any).set("fill", gradient);
+    } else {
+      (canvas as any).backgroundColor = gradient;
+    }
     canvas.renderAll();
   }
 
-  resetCursor() {
-    // Nothing needed
-  }
+  resetCursor() {}
 }
+
+export const activateGradientFillTool = ({
+  canvas,
+  foreground,
+  background,
+  onLayerSync,
+}: ToolContext): void => {
+  disableDrawing(canvas);
+  canvas.selection = false;
+  canvas.defaultCursor = "crosshair";
+
+  let startX = 0;
+  let startY = 0;
+  let isDragging = false;
+
+  canvas.off("mouse:down");
+  canvas.on("mouse:down", (e) => {
+    isDragging = true;
+    const pointer = canvas.getPointer(e.e);
+    startX = pointer.x;
+    startY = pointer.y;
+  });
+
+  canvas.off("mouse:up");
+  canvas.on("mouse:up", (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    const pointer = canvas.getPointer(e.e);
+    const endX = pointer.x;
+    const endY = pointer.y;
+
+    const isAlt = (e.e as MouseEvent).altKey;
+    const gradientType = isAlt ? "radial" : "linear";
+
+    const coords =
+      gradientType === "radial"
+        ? {
+            x1: startX,
+            y1: startY,
+            x2: endX,
+            y2: endY,
+            r1: 0,
+            r2: Math.max(10, Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2)),
+          }
+        : {
+            x1: startX,
+            y1: startY,
+            x2: endX,
+            y2: endY,
+          };
+
+    const gradient = new fabric.Gradient({
+      type: gradientType,
+      coords: coords as any,
+      colorStops: [
+        { offset: 0, color: foreground || "#6366f1" },
+        { offset: 1, color: background || "#22c55e" },
+      ],
+    });
+
+    const activeObj = canvas.getActiveObject();
+    if (activeObj) {
+      (activeObj as any).set("fill", gradient);
+    } else {
+      (canvas as any).backgroundColor = gradient;
+    }
+
+    canvas.renderAll();
+    onLayerSync();
+  });
+};

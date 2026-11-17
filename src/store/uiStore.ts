@@ -1,5 +1,20 @@
 import { create } from "zustand";
 
+export type ModalKey =
+  | "export"
+  | "font"
+  | "newProject"
+  | "shortcuts"
+  | "preferences"
+  | "findReplace"
+  | "print"
+  | "breakpoints"
+  | "distort"
+  | "refineEdge"
+  | "about"
+  | "canvasSize"
+  | "layerStyle";
+
 interface UiState {
   theme: "dark" | "light";
   showLayers: boolean;
@@ -12,9 +27,17 @@ interface UiState {
   openShortcutsModal: boolean;
   openPreferencesModal: boolean;
   openFindReplaceModal: boolean;
+  openPrintModal: boolean;
+  openBreakpointsModal: boolean;
+  openDistortModal: boolean;
+  openRefineEdgeModal: boolean;
+  openAboutModal: boolean;
+  openCanvasSizeModal: boolean;
+  openLayerStylesModal: boolean;
+
   setTheme: (theme: "dark" | "light") => void;
   togglePanel: (key: "layers" | "properties" | "adjustments" | "animation") => void;
-  setModal: (key: "export" | "font" | "newProject" | "shortcuts" | "preferences" | "findReplace", value: boolean) => void;
+  setModal: (key: ModalKey, value: boolean) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -23,16 +46,26 @@ export const useUiStore = create<UiState>((set) => ({
   showProperties: true,
   showAdjustments: true,
   showAnimationTimeline: false,
+
   openExportModal: false,
   openFontModal: false,
   openNewProjectModal: false,
   openShortcutsModal: false,
   openPreferencesModal: false,
   openFindReplaceModal: false,
+  openPrintModal: false,
+  openBreakpointsModal: false,
+  openDistortModal: false,
+  openRefineEdgeModal: false,
+  openAboutModal: false,
+  openCanvasSizeModal: false,
+  openLayerStylesModal: false,
+
   setTheme: (theme) => {
     localStorage.setItem("designbox_theme", theme);
     set({ theme });
   },
+
   togglePanel: (key) =>
     set((state) => {
       if (key === "layers") return { showLayers: !state.showLayers };
@@ -40,6 +73,7 @@ export const useUiStore = create<UiState>((set) => ({
       if (key === "animation") return { showAnimationTimeline: !state.showAnimationTimeline };
       return { showAdjustments: !state.showAdjustments };
     }),
+
   setModal: (key, value) =>
     set(() => {
       if (key === "export") return { openExportModal: value };
@@ -47,6 +81,13 @@ export const useUiStore = create<UiState>((set) => ({
       if (key === "shortcuts") return { openShortcutsModal: value };
       if (key === "preferences") return { openPreferencesModal: value };
       if (key === "findReplace") return { openFindReplaceModal: value };
+      if (key === "print") return { openPrintModal: value };
+      if (key === "breakpoints") return { openBreakpointsModal: value };
+      if (key === "distort") return { openDistortModal: value };
+      if (key === "refineEdge") return { openRefineEdgeModal: value };
+      if (key === "about") return { openAboutModal: value };
+      if (key === "canvasSize") return { openCanvasSizeModal: value };
+      if (key === "layerStyle") return { openLayerStylesModal: value };
       return { openNewProjectModal: value };
     }),
 }));

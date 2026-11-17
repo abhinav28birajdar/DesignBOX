@@ -13,6 +13,13 @@ import FontPickerModal from "@/components/modals/FontPickerModal";
 import KeyboardShortcutsModal from "@/components/modals/KeyboardShortcutsModal";
 import PreferencesModal from "@/components/modals/PreferencesModal";
 import FindReplaceModal from "@/components/modals/FindReplaceModalNew";
+import PrintModal from "@/components/modals/PrintModal";
+import BreakpointsModal from "@/components/modals/BreakpointsModal";
+import DistortRenderModal from "@/components/modals/DistortRenderModal";
+import RefineEdgeModal from "@/components/modals/RefineEdgeModal";
+import AboutModal from "@/components/modals/AboutModal";
+import CanvasSizeModal from "@/components/modals/CanvasSizeModal";
+import LayerStylesModal from "@/components/modals/LayerStylesModal";
 import { AnimationTimelinePanel } from "@/components/panels/AnimationTimelinePanel";
 import { useUiStore } from "@/store/uiStore";
 import { useProjectStore } from "@/store/projectStore";
@@ -26,6 +33,7 @@ import type { fabric } from "fabric";
 import type { ProjectTab } from "@/types";
 import { useState } from "react";
 import ContextMenu from "@/components/overlays/ContextMenu";
+import ToastContainer from "@/components/overlays/ToastContainer";
 import HomePage from "@/pages/HomePage";
 
 export default function App() {
@@ -40,6 +48,13 @@ export default function App() {
   const openShortcutsModal = useUiStore((state) => state.openShortcutsModal);
   const openPreferencesModal = useUiStore((state) => state.openPreferencesModal);
   const openFindReplaceModal = useUiStore((state) => state.openFindReplaceModal);
+  const openPrintModal = useUiStore((state) => state.openPrintModal);
+  const openBreakpointsModal = useUiStore((state) => state.openBreakpointsModal);
+  const openDistortModal = useUiStore((state) => state.openDistortModal);
+  const openRefineEdgeModal = useUiStore((state) => state.openRefineEdgeModal);
+  const openAboutModal = useUiStore((state) => state.openAboutModal);
+  const openCanvasSizeModal = useUiStore((state) => state.openCanvasSizeModal);
+  const openLayerStylesModal = useUiStore((state) => state.openLayerStylesModal);
   const showAnimationTimeline = useUiStore((state) => state.showAnimationTimeline);
   const setModal = useUiStore((state) => state.setModal);
   const togglePanel = useUiStore((state) => state.togglePanel);
@@ -227,12 +242,24 @@ export default function App() {
       <KeyboardShortcutsModal open={openShortcutsModal} onClose={() => setModal("shortcuts", false)} />
       <PreferencesModal open={openPreferencesModal} onClose={() => setModal("preferences", false)} />
       <FindReplaceModal isOpen={openFindReplaceModal} onClose={() => setModal("findReplace", false)} />
+      <PrintModal open={openPrintModal} onClose={() => setModal("print", false)} />
+      <BreakpointsModal open={openBreakpointsModal} onClose={() => setModal("breakpoints", false)} />
+      <DistortRenderModal open={openDistortModal} onClose={() => setModal("distort", false)} />
+      <RefineEdgeModal open={openRefineEdgeModal} onClose={() => setModal("refineEdge", false)} />
+      <AboutModal
+        open={openAboutModal}
+        onClose={() => setModal("about", false)}
+        onOpenShortcuts={() => setModal("shortcuts", true)}
+      />
+      <CanvasSizeModal open={openCanvasSizeModal} onClose={() => setModal("canvasSize", false)} />
+      <LayerStylesModal open={openLayerStylesModal} onClose={() => setModal("layerStyle", false)} />
 
       {showAnimationTimeline && (
         <div className="fixed bottom-0 left-64 right-80 h-64 bg-[#111827] border-t border-[#2D3748] overflow-hidden">
           <AnimationTimelinePanel />
         </div>
       )}
+      <ToastContainer />
     </div>
   );
 }

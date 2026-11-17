@@ -8,7 +8,7 @@ export type ToolId =
   | "move" | "select-rect" | "select-ellipse" | "lasso" | "magic-wand" | "crop"
   | "brush" | "eraser" | "clone" | "healing-brush" | "blur-sharpen-smudge"
   | "pen" | "fill" | "gradient-fill" | "eyedropper" | "text" | "shape"
-  | "zoom" | "hand" | "measure";
+  | "zoom" | "hand" | "measure" | "notes";
 
 export type ShapeType = "rect" | "ellipse" | "line" | "polygon" | "star";
 
@@ -186,6 +186,9 @@ export interface ToolOptions {
   textAlignment: "left" | "center" | "right";
   zoom: number;
   mode?: string;
+  brushHardness?: number;
+  fillColor?: string;
+  strokeColor?: string;
 }
 
 // ============================================================================

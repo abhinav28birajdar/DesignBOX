@@ -1,5 +1,5 @@
 import { fabric } from "fabric";
-import { BaseTool } from "./toolCommon";
+import { BaseTool, disableDrawing, type ToolContext } from "./toolCommon";
 
 export interface BlurToolOptions {
   mode: "blur" | "sharpen" | "smudge";
@@ -24,8 +24,6 @@ export class BlurSharpenSmudgeTool extends BaseTool {
   onMouseMove(_e: fabric.IEvent, canvas: fabric.Canvas, options: BlurToolOptions) {
     if (!this.isDrawing) return;
 
-    // This would require pixel-level manipulation
-    // For now, apply effect via canvas filters
     const activeObj = canvas.getActiveObject() as fabric.Image;
     if (!activeObj) return;
 
@@ -36,11 +34,15 @@ export class BlurSharpenSmudgeTool extends BaseTool {
         activeObj.filters = [new (fabric.Image.filters as any).Blur({ blur: strength * 0.5 })];
         break;
       case "sharpen":
-        activeObj.applyFilters();
-        canvas.renderAll();
+        activeObj.filters = [new (fabric.Image.filters as any).Convolute({
+          matrix: [
+            0, -1, 0,
+            -1, 5, -1,
+            0, -1, 0,
+          ],
+        })];
         break;
       case "smudge":
-        // Smudge would require complex pixel manipulation
         break;
     }
 
@@ -52,7 +54,41 @@ export class BlurSharpenSmudgeTool extends BaseTool {
     this.isDrawing = false;
   }
 
-  resetCursor() {
-    // Nothing needed
-  }
+  resetCursor() {}
 }
+
+export const activateBlurSharpenSmudgeTool = ({
+  canvas,
+  options,
+  onLayerSync,
+}: ToolContext): void => {
+  disableDrawing(canvas);
+  canvas.selection = false;
+  canvas.defaultCursor = "crosshair";
+
+  let isDrawing = false;
+
+  canvas.off("mouse:down");
+  canvas.on("mouse:down", () => {
+    isDrawing = true;
+    const activeObj = canvas.getActiveObject() as fabric.Image;
+    if (activeObj && activeObj.type === "image") {
+      const strength = (options.brushOpacity || 50) / 100;
+      activeObj.filters = activeObj.filters || [];
+      activeObj.filters.push(new (fabric.Image.filters as any).Blur({ blur: strength * 0.4 }));
+      activeObj.applyFilters();
+      canvas.renderAll();
+      onLayerSync();
+    }
+  });
+
+  canvas.off("mouse:move");
+  canvas.on("mouse:move", () => {
+    if (!isDrawing) return;
+  });
+
+  canvas.off("mouse:up");
+  canvas.on("mouse:up", () => {
+    isDrawing = false;
+  });
+};

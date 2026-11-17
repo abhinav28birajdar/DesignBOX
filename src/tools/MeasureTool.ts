@@ -1,5 +1,5 @@
 import { fabric } from "fabric";
-import { BaseTool } from "./toolCommon";
+import { BaseTool, disableDrawing, type ToolContext } from "./toolCommon";
 
 export interface MeasureToolOptions {
   unit: "px" | "cm" | "mm" | "in";
@@ -26,13 +26,11 @@ export class MeasureTool extends BaseTool {
 
     const pointer = canvas.getPointer(e.e);
 
-    // Remove previous line
     if (this.line) {
       canvas.remove(this.line);
     }
 
-    // Draw measurement line
-    this.line = new (fabric.Line as any)(
+    this.line = new fabric.Line(
       [this.startX, this.startY, pointer.x, pointer.y],
       {
         stroke: "#6366F1",
@@ -45,21 +43,67 @@ export class MeasureTool extends BaseTool {
       canvas.add(this.line);
       canvas.renderAll();
     }
-
-    // Calculate distance
-    const dx = pointer.x - this.startX;
-    const dy = pointer.y - this.startY;
-    const pixelDistance = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-
-    console.log(`Distance: ${pixelDistance.toFixed(2)}px, Angle: ${angle.toFixed(2)}°`);
   }
 
   onMouseUp() {
     this.isDrawing = false;
   }
 
-  resetCursor() {
-    // Nothing needed
-  }
+  resetCursor() {}
 }
+
+export const activateMeasureTool = ({ canvas }: ToolContext): void => {
+  disableDrawing(canvas);
+  canvas.selection = false;
+  canvas.defaultCursor = "crosshair";
+
+  let startX = 0;
+  let startY = 0;
+  let isMeasuring = false;
+  let measureLine: fabric.Line | null = null;
+
+  canvas.off("mouse:down");
+  canvas.on("mouse:down", (e) => {
+    isMeasuring = true;
+    const pointer = canvas.getPointer(e.e);
+    startX = pointer.x;
+    startY = pointer.y;
+
+    if (measureLine) {
+      canvas.remove(measureLine);
+      measureLine = null;
+    }
+
+    measureLine = new fabric.Line([startX, startY, startX, startY], {
+      stroke: "#6366F1",
+      strokeWidth: 2,
+      strokeDashArray: [4, 4],
+      selectable: false,
+      evented: false,
+      data: { tempToolObject: true },
+    });
+    canvas.add(measureLine);
+  });
+
+  canvas.off("mouse:move");
+  canvas.on("mouse:move", (e) => {
+    if (!isMeasuring || !measureLine) return;
+    const pointer = canvas.getPointer(e.e);
+    measureLine.set({ x2: pointer.x, y2: pointer.y });
+    canvas.renderAll();
+  });
+
+  canvas.off("mouse:up");
+  canvas.on("mouse:up", () => {
+    isMeasuring = false;
+    if (measureLine) {
+      setTimeout(() => {
+        if (measureLine) {
+          canvas.remove(measureLine);
+          measureLine = null;
+          canvas.renderAll();
+        }
+      }, 3000);
+    }
+  });
+};

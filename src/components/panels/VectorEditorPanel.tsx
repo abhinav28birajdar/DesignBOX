@@ -91,15 +91,26 @@ export default function VectorEditorPanel() {
     setSelectedPath(updated);
   };
 
+  const syncFromCanvas = useLayersStore((state) => state.syncFromCanvas);
+
   const handleApplyChanges = () => {
     if (!selectedPath || !canvas) return;
     const active = canvas.getActiveObject();
     if (active && active.type === "path") {
       const newPath = vectorToFabricPath(selectedPath, canvas);
+      newPath.set({
+        left: active.left,
+        top: active.top,
+        scaleX: active.scaleX,
+        scaleY: active.scaleY,
+        angle: active.angle,
+        data: active.data,
+      });
       canvas.remove(active);
       canvas.add(newPath);
       canvas.setActiveObject(newPath);
       canvas.renderAll();
+      syncFromCanvas(canvas);
     }
   };
 

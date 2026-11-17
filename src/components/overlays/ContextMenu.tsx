@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { fabric } from "fabric";
 import { useCanvasStore } from "@/store/canvasStore";
 import { useLayersStore } from "@/store/layersStore";
+import { useUiStore } from "@/store/uiStore";
 
 interface MenuState {
   x: number;
@@ -18,11 +19,14 @@ export default function ContextMenu() {
   const [clipboard, setClipboard] = useState<fabric.Object | null>(null);
 
   useEffect(() => {
-    if (!canvas) return;
+    if (!canvas || (canvas as any).isDisposed) return;
 
-    const element = canvas.getSelectionElement();
+    const element = canvas.getSelectionElement?.() || (canvas as any).upperCanvasEl;
+    if (!element) return;
+
     const handler = (event: MouseEvent) => {
       event.preventDefault();
+      if ((canvas as any).isDisposed) return;
       const target = canvas.findTarget(event, true);
       let kind: MenuState["kind"] = "empty";
       if (target) {
@@ -41,7 +45,9 @@ export default function ContextMenu() {
     window.addEventListener("keydown", close);
 
     return () => {
-      element.removeEventListener("contextmenu", handler);
+      if (element) {
+        element.removeEventListener("contextmenu", handler);
+      }
       window.removeEventListener("click", close);
       window.removeEventListener("keydown", close);
     };
@@ -89,6 +95,14 @@ export default function ContextMenu() {
             <button className={menuItemClass} onClick={() => { active.set({ flipY: !active.flipY }); canvas.renderAll(); syncFromCanvas(canvas); }}>Flip Vertical</button>
             <button className={menuItemClass} onClick={() => { active.rotate((active.angle || 0) + 90); active.setCoords(); canvas.renderAll(); syncFromCanvas(canvas); }}>Rotate 90 CW</button>
             <button className={menuItemClass} onClick={() => { active.rotate((active.angle || 0) - 90); active.setCoords(); canvas.renderAll(); syncFromCanvas(canvas); }}>Rotate 90 CCW</button>
+            <div className="h-px bg-slate-700 my-1" />
+            <button className={menuItemClass} onClick={() => { useUiStore.getState().setModal("layerStyle", true); }}>Layer Style...</button>
+            {active.type === "activeSelection" && (
+              <button className={menuItemClass} onClick={() => { (active as fabric.ActiveSelection).toGroup(); canvas.renderAll(); syncFromCanvas(canvas); }}>Group</button>
+            )}
+            {active.type === "group" && (
+              <button className={menuItemClass} onClick={() => { (active as fabric.Group).toActiveSelection(); canvas.renderAll(); syncFromCanvas(canvas); }}>Ungroup</button>
+            )}
             {menu.kind === "text" ? (
               <button className={menuItemClass} onClick={() => { if (active.type === "textbox") (active as fabric.Textbox).enterEditing(); canvas.renderAll(); }}>Edit Text</button>
             ) : null}
